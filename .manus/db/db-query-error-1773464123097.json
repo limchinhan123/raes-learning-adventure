@@ -1,0 +1,12 @@
+{
+  "query": "CREATE TABLE `levelCompletions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`worldId` int NOT NULL,\n\t`levelId` int NOT NULL,\n\t`gameType` enum('alphabet','math','motor') NOT NULL,\n\t`starsEarned` int NOT NULL DEFAULT 0,\n\t`score` int NOT NULL DEFAULT 0,\n\t`completedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `levelCompletions_id` PRIMARY KEY(`id`)\n);\n\nCREATE TABLE `playerProgress` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`currentWorld` int NOT NULL DEFAULT 1,\n\t`currentLevel` int NOT NULL DEFAULT 1,\n\t`totalStars` int NOT NULL DEFAULT 0,\n\t`totalHearts` int NOT NULL DEFAULT 0,\n\t`totalPlayTimeMinutes` int NOT NULL DEFAULT 0,\n\t`foodsCollected` json DEFAULT ('[]'),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `playerProgress_id` PRIMARY KEY(`id`)\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user cVRTeVoRhqzh3io.root --database ZWjdUE9NtbgjHKzQk7FVZm --execute CREATE TABLE `levelCompletions` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`worldId` int NOT NULL,\n\t`levelId` int NOT NULL,\n\t`gameType` enum('alphabet','math','motor') NOT NULL,\n\t`starsEarned` int NOT NULL DEFAULT 0,\n\t`score` int NOT NULL DEFAULT 0,\n\t`completedAt` timestamp NOT NULL DEFAULT (now()),\n\tCONSTRAINT `levelCompletions_id` PRIMARY KEY(`id`)\n);\n\nCREATE TABLE `playerProgress` (\n\t`id` int AUTO_INCREMENT NOT NULL,\n\t`userId` int NOT NULL,\n\t`currentWorld` int NOT NULL DEFAULT 1,\n\t`currentLevel` int NOT NULL DEFAULT 1,\n\t`totalStars` int NOT NULL DEFAULT 0,\n\t`totalHearts` int NOT NULL DEFAULT 0,\n\t`totalPlayTimeMinutes` int NOT NULL DEFAULT 0,\n\t`foodsCollected` json DEFAULT ('[]'),\n\t`createdAt` timestamp NOT NULL DEFAULT (now()),\n\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,\n\tCONSTRAINT `playerProgress_id` PRIMARY KEY(`id`)\n);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 13: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 9 column 37 near \"'[]'),",
+    "\t`createdAt` timestamp NOT NULL DEFAULT (now()),",
+    "\t`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,",
+    "\tCONSTRAINT `playerProgress_id` PRIMARY KEY(`id`)",
+    ")\""
+  ]
+}

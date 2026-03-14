@@ -1,38 +1,45 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
+import { GameProvider, useGame } from "./contexts/GameContext";
+import WelcomeScreen from "./pages/WelcomeScreen";
+import WorldMap from "./pages/WorldMap";
+import LevelSelect from "./pages/LevelSelect";
+import GameScreen from "./pages/GameScreen";
+import RewardScreen from "./pages/RewardScreen";
+import ScreenTimeReminder from "./pages/ScreenTimeReminder";
 
-function Router() {
-  // make sure to consider if you need authentication for certain routes
-  return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
-  );
+function GameRouter() {
+  const { screen } = useGame();
+
+  switch (screen) {
+    case "welcome":
+      return <WelcomeScreen />;
+    case "worldMap":
+      return <WorldMap />;
+    case "levelSelect":
+      return <LevelSelect />;
+    case "game":
+      return <GameScreen />;
+    case "reward":
+      return <RewardScreen />;
+    case "screenTimeReminder":
+      return <ScreenTimeReminder />;
+    default:
+      return <WelcomeScreen />;
+  }
 }
-
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <GameProvider>
+            <GameRouter />
+          </GameProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
