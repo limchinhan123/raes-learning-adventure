@@ -13,6 +13,8 @@ import {
   TOTAL_LEVELS,
   WORD_CATEGORIES,
   ASSETS,
+  ALL_LEVELS_UNLOCKED,
+  SCREEN_TIME_REMINDER_MINUTES,
 } from "../shared/gameConfig";
 
 describe("Game Configuration", () => {
@@ -45,7 +47,7 @@ describe("Game Configuration", () => {
   });
 
   describe("ASSETS", () => {
-    it("has all required asset URLs", () => {
+    it("has all required asset URLs including Rae", () => {
       expect(ASSETS.penguin).toBeTruthy();
       expect(ASSETS.jellycat).toBeTruthy();
       expect(ASSETS.penguinCelebrating).toBeTruthy();
@@ -54,12 +56,21 @@ describe("Game Configuration", () => {
       expect(ASSETS.worldMapBg).toBeTruthy();
       expect(ASSETS.bigBigLoveHeart).toBeTruthy();
       expect(ASSETS.starReward).toBeTruthy();
+      // New v2: Rae avatar assets
+      expect(ASSETS.rae).toBeTruthy();
+      expect(ASSETS.raeCelebrating).toBeTruthy();
     });
 
     it("all asset URLs are valid HTTPS URLs", () => {
       for (const [key, url] of Object.entries(ASSETS)) {
         expect(url).toMatch(/^https:\/\//);
       }
+    });
+
+    it("Rae avatar assets are distinct from other characters", () => {
+      expect(ASSETS.rae).not.toBe(ASSETS.penguin);
+      expect(ASSETS.rae).not.toBe(ASSETS.jellycat);
+      expect(ASSETS.raeCelebrating).not.toBe(ASSETS.penguinCelebrating);
     });
   });
 
@@ -74,6 +85,14 @@ describe("Game Configuration", () => {
 
     it("has 50 total levels", () => {
       expect(TOTAL_LEVELS).toBe(50);
+    });
+
+    it("all levels are unlocked from the start", () => {
+      expect(ALL_LEVELS_UNLOCKED).toBe(true);
+    });
+
+    it("screen time reminder is set to 20 minutes", () => {
+      expect(SCREEN_TIME_REMINDER_MINUTES).toBe(20);
     });
   });
 
@@ -174,8 +193,7 @@ describe("Game Configuration", () => {
     it("easy difficulty returns shorter words", () => {
       const easyWords = getWordsForDifficulty(1);
       const maxLen = Math.max(...easyWords.map(w => w.length));
-      // Easy words should be mostly short (some family names may be longer)
-      expect(maxLen).toBeLessThanOrEqual(7); // BRANDON/STEFFI
+      expect(maxLen).toBeLessThanOrEqual(7);
     });
 
     it("always includes family names", () => {
@@ -189,11 +207,20 @@ describe("Game Configuration", () => {
   describe("getRandomCharacter", () => {
     it("returns valid character types", () => {
       const validTypes = ["penguin", "jellycat", "both"];
-      // Run multiple times to check randomness
       for (let i = 0; i < 50; i++) {
         const char = getRandomCharacter();
         expect(validTypes).toContain(char);
       }
+    });
+
+    it("returns all character types over many iterations", () => {
+      const seen = new Set<string>();
+      for (let i = 0; i < 200; i++) {
+        seen.add(getRandomCharacter());
+      }
+      expect(seen.has("penguin")).toBe(true);
+      expect(seen.has("jellycat")).toBe(true);
+      expect(seen.has("both")).toBe(true);
     });
   });
 
@@ -249,11 +276,9 @@ describe("Game Configuration", () => {
 });
 
 describe("Game Router", () => {
-  // Test the router structure
   it("appRouter has game namespace", async () => {
     const { appRouter } = await import("./routers");
     expect(appRouter).toBeDefined();
-    // The router should have the game procedures
     expect(appRouter._def.procedures).toBeDefined();
   });
 });

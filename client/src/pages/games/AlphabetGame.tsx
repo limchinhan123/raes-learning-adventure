@@ -5,6 +5,7 @@ import CharacterDisplay from "@/components/CharacterDisplay";
 import { trpc } from "@/lib/trpc";
 import { useTTS } from "@/hooks/useTTS";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useGame } from "@/contexts/GameContext";
 
 interface AlphabetGameProps {
   difficulty: number;
@@ -13,6 +14,7 @@ interface AlphabetGameProps {
 }
 
 export default function AlphabetGame({ difficulty, character, onComplete }: AlphabetGameProps) {
+  const { isMobile } = useGame();
   const [currentWord, setCurrentWord] = useState("");
   const [typedLetters, setTypedLetters] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -30,7 +32,6 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
 
   const generateChallenge = trpc.game.generateAlphabetChallenge.useMutation();
 
-  // Pre-fetch AI words for future rounds
   const aiWordsRef = useRef<Array<{ word: string; hint: string }>>([]);
   const fetchAIWord = useCallback(async () => {
     try {
@@ -47,11 +48,9 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
   }, [difficulty]);
 
   useEffect(() => {
-    // Set word immediately from local library
     const words = getWordsForDifficulty(difficulty);
     const word = words[Math.floor(Math.random() * words.length)];
 
-    // Check if we have a pre-fetched AI word
     if (aiWordsRef.current.length > 0) {
       const aiData = aiWordsRef.current.shift()!;
       setCurrentWord(aiData.word);
@@ -64,11 +63,9 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
     setCurrentIndex(0);
     setIsLoading(false);
 
-    // Pre-fetch next AI word
     fetchAIWord();
   }, [round, difficulty]);
 
-  // Speak the word when it appears
   useEffect(() => {
     if (currentWord && !isLoading) {
       const timer = setTimeout(() => {
@@ -79,56 +76,58 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
     }
   }, [currentWord, isLoading, round]);
 
-  // Focus the container
   useEffect(() => {
     containerRef.current?.focus();
   }, [currentWord]);
 
+  // Handle letter input (from keyboard or touch)
+  const handleLetterInput = useCallback((key: string) => {
+    if (!currentWord || isComplete || isLoading || showFeedback) return;
+
+    const letter = key.toUpperCase();
+    if (letter.length !== 1 || letter < "A" || letter > "Z") return;
+
+    if (letter === currentWord[currentIndex]) {
+      playKeyPress();
+      const newTyped = [...typedLetters, letter];
+      setTypedLetters(newTyped);
+      setCurrentIndex(prev => prev + 1);
+
+      if (newTyped.length === currentWord.length) {
+        setCorrectCount(prev => prev + 1);
+        setShowFeedback("correct");
+        const msg = getRandomMessage(CHARACTER_MESSAGES.correct);
+        setFeedbackMessage(msg);
+        playCorrect();
+        speakForCharacter(msg, character);
+
+        setTimeout(() => {
+          setShowFeedback(null);
+          if (round >= totalRounds) {
+            setIsComplete(true);
+          } else {
+            setRound(prev => prev + 1);
+          }
+        }, 1500);
+      }
+    } else {
+      setShowFeedback("wrong");
+      const msg = getRandomMessage(CHARACTER_MESSAGES.encouragement);
+      setFeedbackMessage(msg);
+      playWrong();
+      setTimeout(() => setShowFeedback(null), 1200);
+    }
+  }, [currentWord, currentIndex, typedLetters, round, totalRounds, isComplete, showFeedback, isLoading, character]);
+
   // Keyboard handler
   useEffect(() => {
-    if (!currentWord || isComplete || isLoading) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (showFeedback) return;
-
-      const key = e.key.toUpperCase();
-      if (key.length === 1 && key >= "A" && key <= "Z") {
-        if (key === currentWord[currentIndex]) {
-          playKeyPress();
-          const newTyped = [...typedLetters, key];
-          setTypedLetters(newTyped);
-          setCurrentIndex(prev => prev + 1);
-
-          if (newTyped.length === currentWord.length) {
-            setCorrectCount(prev => prev + 1);
-            setShowFeedback("correct");
-            const msg = getRandomMessage(CHARACTER_MESSAGES.correct);
-            setFeedbackMessage(msg);
-            playCorrect();
-            speakForCharacter(msg, character);
-
-            setTimeout(() => {
-              setShowFeedback(null);
-              if (round >= totalRounds) {
-                setIsComplete(true);
-              } else {
-                setRound(prev => prev + 1);
-              }
-            }, 1500);
-          }
-        } else {
-          setShowFeedback("wrong");
-          const msg = getRandomMessage(CHARACTER_MESSAGES.encouragement);
-          setFeedbackMessage(msg);
-          playWrong();
-          setTimeout(() => setShowFeedback(null), 1200);
-        }
-      }
+      handleLetterInput(e.key);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentWord, currentIndex, typedLetters, round, totalRounds, isComplete, showFeedback, isLoading]);
+  }, [handleLetterInput]);
 
   useEffect(() => {
     if (isComplete) {
@@ -138,33 +137,43 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
     }
   }, [isComplete]);
 
+  // On-screen keyboard for mobile
+  const keyboardRows = [
+    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+    ["Z", "X", "C", "V", "B", "N", "M"],
+  ];
+
+  // Highlight the next expected letter
+  const nextLetter = currentWord && currentIndex < currentWord.length ? currentWord[currentIndex] : "";
+
   return (
     <div
-      className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto px-4 outline-none"
+      className="flex flex-col items-center gap-3 md:gap-5 w-full max-w-2xl mx-auto px-3 md:px-4 outline-none"
       ref={containerRef}
       tabIndex={0}
     >
       {/* Progress */}
       <div className="w-full flex items-center gap-3">
-        <span className="text-sm font-bold text-game-pink-dark/60">
+        <span className="text-xs md:text-sm font-bold text-game-pink-dark/60">
           {round}/{totalRounds}
         </span>
-        <div className="flex-1 bg-game-pink-light/50 rounded-full h-3">
+        <div className="flex-1 bg-game-pink-light/50 rounded-full h-2.5 md:h-3">
           <motion.div
-            className="bg-game-pink rounded-full h-3"
+            className="bg-game-pink rounded-full h-2.5 md:h-3"
             animate={{ width: `${(round / totalRounds) * 100}%` }}
             transition={{ duration: 0.5 }}
           />
         </div>
       </div>
 
-      {/* Character */}
-      <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size="lg" />
+      {/* Character with Rae */}
+      <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size={isMobile ? "md" : "lg"} showRae />
 
       {/* Hint */}
       {hint && (
         <motion.p
-          className="text-base text-foreground/50 italic text-center"
+          className="text-sm md:text-base text-foreground/50 italic text-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
@@ -185,11 +194,11 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
       ) : (
         <>
           {/* Word display */}
-          <div className="flex gap-2 md:gap-3 flex-wrap justify-center">
+          <div className="flex gap-1.5 md:gap-3 flex-wrap justify-center">
             {currentWord.split("").map((letter, i) => (
               <motion.div
                 key={`${round}-${i}`}
-                className={`w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center text-2xl md:text-3xl font-bold shadow-md border-2 transition-all ${
+                className={`w-11 h-11 md:w-14 md:h-14 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-3xl font-bold shadow-md border-2 transition-all ${
                   i < currentIndex
                     ? "bg-game-pink text-white border-game-pink-dark"
                     : i === currentIndex
@@ -203,7 +212,7 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
                 {i < currentIndex ? (
                   <span>{typedLetters[i]}</span>
                 ) : i === currentIndex ? (
-                  <span className="text-game-pink/30 text-3xl">{letter}</span>
+                  <span className="text-game-pink/30 text-2xl md:text-3xl">{letter}</span>
                 ) : (
                   <span className="text-game-pink-light/50">_</span>
                 )}
@@ -219,9 +228,9 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <p className="text-xl text-foreground/60">
-                Press the letter{" "}
-                <span className="text-3xl font-bold text-game-pink-dark">
+              <p className="text-base md:text-xl text-foreground/60">
+                {isMobile ? "Tap" : "Press"} the letter{" "}
+                <span className="text-2xl md:text-3xl font-bold text-game-pink-dark">
                   {currentWord[currentIndex]}
                 </span>
               </p>
@@ -240,18 +249,18 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className={`rounded-3xl px-8 py-6 text-center shadow-xl ${
+              className={`rounded-3xl px-6 py-5 md:px-8 md:py-6 text-center shadow-xl ${
                 showFeedback === "correct" ? "bg-game-mint/95" : "bg-game-peach/95"
               }`}
               initial={{ scale: 0.5 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.5 }}
             >
-              <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size="sm" />
-              <span className="text-4xl mb-2 block">
+              <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size="sm" showRae />
+              <span className="text-3xl md:text-4xl mb-2 block">
                 {showFeedback === "correct" ? "🌟" : "💪"}
               </span>
-              <p className="text-lg font-bold text-foreground/80">
+              <p className="text-base md:text-lg font-bold text-foreground/80">
                 {feedbackMessage}
               </p>
             </motion.div>
@@ -259,17 +268,46 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
         )}
       </AnimatePresence>
 
-      {/* Keyboard hint */}
-      <motion.div
-        className="bg-white/50 rounded-2xl px-6 py-3 text-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-      >
-        <p className="text-sm text-foreground/40">
-          Find the letter on your keyboard and press it!
-        </p>
-      </motion.div>
+      {/* On-screen keyboard for mobile, keyboard hint for desktop */}
+      {isMobile ? (
+        <div className="w-full flex flex-col gap-1.5 mt-1">
+          {keyboardRows.map((row, rowIdx) => (
+            <div key={rowIdx} className="flex justify-center gap-1">
+              {row.map(letter => {
+                const isNext = letter === nextLetter;
+                return (
+                  <motion.button
+                    key={letter}
+                    className={`rounded-lg font-bold text-sm py-2.5 shadow-sm border transition-all select-none ${
+                      isNext
+                        ? "bg-game-pink text-white border-game-pink-dark scale-110 shadow-md"
+                        : "bg-white/90 text-game-pink-dark border-game-pink/20 active:bg-game-pink-light"
+                    }`}
+                    style={{ width: `${100 / (row.length + 1)}%`, maxWidth: "42px" }}
+                    onClick={() => handleLetterInput(letter)}
+                    whileTap={{ scale: 0.9 }}
+                    animate={isNext ? { y: [0, -2, 0] } : {}}
+                    transition={isNext ? { duration: 1, repeat: Infinity } : {}}
+                  >
+                    {letter}
+                  </motion.button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <motion.div
+          className="bg-white/50 rounded-2xl px-6 py-3 text-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+        >
+          <p className="text-sm text-foreground/40">
+            Find the letter on your keyboard and press it!
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 }

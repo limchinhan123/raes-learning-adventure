@@ -8,6 +8,8 @@ export const ASSETS = {
   worldMapBg: "https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/world-map-bg-mqHsPggvgGHgjWnBKcZtkA.webp",
   bigBigLoveHeart: "https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/big-big-love-heart-4UYsbBcUwPuGSnucynmzBV.webp",
   starReward: "https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/star-reward-95jttEzzhfjXQ8jXr2cWRw.webp",
+  rae: "https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/rae-avatar-E5Gxhe2okLriXo5AqmUvNq.webp",
+  raeCelebrating: "https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/rae-avatar-celebrating-EVk6gV45Nu6shxPZqGQuci.webp",
 };
 
 // ===== WORLD CONFIGURATION =====
@@ -79,8 +81,10 @@ export const LEVELS_PER_WORLD = 10;
 export const TOTAL_WORLDS = 5;
 export const TOTAL_LEVELS = LEVELS_PER_WORLD * TOTAL_WORLDS;
 
-// Each level has a game type that cycles: alphabet, math, motor, alphabet, math, motor...
-// With some variation
+// All levels are unlocked from the start
+export const ALL_LEVELS_UNLOCKED = true;
+
+// Each level has a game type that cycles
 export function getLevelGameType(worldId: number, levelInWorld: number): GameType {
   const patterns: GameType[][] = [
     ["alphabet", "math", "motor", "alphabet", "math", "alphabet", "motor", "math", "alphabet", "motor"],
@@ -94,7 +98,6 @@ export function getLevelGameType(worldId: number, levelInWorld: number): GameTyp
 
 // ===== DIFFICULTY SCALING =====
 export function getDifficulty(worldId: number, levelInWorld: number): number {
-  // Returns 1-10 difficulty scale
   const baseDifficulty = (worldId - 1) * 2;
   const levelBonus = Math.floor((levelInWorld - 1) / 3);
   return Math.min(10, baseDifficulty + levelBonus + 1);
@@ -126,10 +129,8 @@ export const WORD_CATEGORIES = {
   ],
 };
 
-// Flatten for easy access by difficulty
 export function getWordsForDifficulty(difficulty: number): string[] {
   if (difficulty <= 2) {
-    // Very easy: 2-3 letter words + family names
     return [
       ...WORD_CATEGORIES.familyNames,
       ...WORD_CATEGORIES.animals.filter(w => w.length <= 3),

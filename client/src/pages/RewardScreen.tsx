@@ -5,26 +5,26 @@ import CharacterDisplay from "@/components/CharacterDisplay";
 import { useState, useEffect } from "react";
 import { useTTS } from "@/hooks/useTTS";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 
 export default function RewardScreen() {
-  const { setScreen, currentWorld, currentLevel, score, activeCharacter, totalStars } = useGame();
+  const { setScreen, score, activeCharacter, isMobile } = useGame();
   const [showHearts, setShowHearts] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [showVeggie, setShowVeggie] = useState(false);
   const { speakForCharacter } = useTTS();
   const { playCelebration } = useSoundEffects();
+  useBackgroundMusic();
 
   const [bigBigLoveMsg] = useState(() => getRandomMessage(CHARACTER_MESSAGES.bigBigLove));
   const [veggieMsg] = useState(() => getRandomMessage(VEGGIE_MESSAGES));
 
   useEffect(() => {
-    // Play celebration sound immediately
     playCelebration();
 
     const t1 = setTimeout(() => setShowHearts(true), 500);
     const t2 = setTimeout(() => {
       setShowMessage(true);
-      // Speak the Big Big Love message
       speakForCharacter(bigBigLoveMsg, activeCharacter);
     }, 1200);
     const t3 = setTimeout(() => setShowVeggie(true), 2500);
@@ -32,9 +32,10 @@ export default function RewardScreen() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 40%, #f3e5f5 100%)" }}>
-
+    <div
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4"
+      style={{ background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 40%, #f3e5f5 100%)" }}
+    >
       {/* Floating hearts */}
       <AnimatePresence>
         {showHearts && [...Array(12)].map((_, i) => (
@@ -67,13 +68,18 @@ export default function RewardScreen() {
 
       {/* Main content */}
       <motion.div
-        className="flex flex-col items-center gap-6 z-10 px-4"
+        className="flex flex-col items-center gap-4 md:gap-6 z-10"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Characters celebrating */}
-        <CharacterDisplay character={activeCharacter} celebrating size="xl" />
+        {/* Characters celebrating - with Rae! */}
+        <CharacterDisplay
+          character={activeCharacter}
+          celebrating
+          size={isMobile ? "lg" : "xl"}
+          showRae
+        />
 
         {/* Big Big Love Heart */}
         <motion.div
@@ -84,7 +90,7 @@ export default function RewardScreen() {
           <img
             src={ASSETS.bigBigLoveHeart}
             alt="Big Big Love"
-            className="w-40 h-40 md:w-48 md:h-48 object-contain drop-shadow-xl"
+            className="w-32 h-32 md:w-48 md:h-48 object-contain drop-shadow-xl"
           />
         </motion.div>
 
@@ -95,10 +101,10 @@ export default function RewardScreen() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <h2 className="game-title text-3xl md:text-4xl text-game-pink-dark mb-2">
+            <h2 className="game-title text-2xl md:text-4xl text-game-pink-dark mb-2">
               Big Big Love!
             </h2>
-            <p className="text-lg text-game-pink-dark/70 font-medium max-w-md">
+            <p className="text-base md:text-lg text-game-pink-dark/70 font-medium max-w-md">
               {bigBigLoveMsg}
             </p>
           </motion.div>
@@ -121,7 +127,7 @@ export default function RewardScreen() {
               <img
                 src={ASSETS.starReward}
                 alt="Star"
-                className={`w-12 h-12 ${s <= Math.min(3, Math.ceil(score / 33)) ? "" : "opacity-30 grayscale"}`}
+                className={`w-10 h-10 md:w-12 md:h-12 ${s <= Math.min(3, Math.ceil(score / 33)) ? "" : "opacity-30 grayscale"}`}
               />
             </motion.div>
           ))}
@@ -130,11 +136,11 @@ export default function RewardScreen() {
         {/* Veggie encouragement */}
         {showVeggie && (
           <motion.div
-            className="bg-white/70 rounded-2xl px-6 py-3 max-w-md text-center shadow-sm"
+            className="bg-white/70 rounded-2xl px-5 py-3 max-w-md text-center shadow-sm"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <p className="text-sm text-game-pink-dark/60 italic">
+            <p className="text-xs md:text-sm text-game-pink-dark/60 italic">
               🥦 {veggieMsg}
             </p>
           </motion.div>
@@ -142,13 +148,13 @@ export default function RewardScreen() {
 
         {/* Action buttons */}
         <motion.div
-          className="flex gap-4 mt-4"
+          className="flex gap-3 md:gap-4 mt-2 md:mt-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 2 }}
         >
           <motion.button
-            className="rounded-2xl font-bold text-lg px-8 py-4 transition-all duration-200 shadow-md hover:shadow-lg bg-game-lavender text-foreground"
+            className="rounded-2xl font-bold text-base md:text-lg px-6 py-3 md:px-8 md:py-4 transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 bg-game-lavender text-foreground"
             onClick={() => setScreen("levelSelect")}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -156,7 +162,7 @@ export default function RewardScreen() {
             More Levels
           </motion.button>
           <motion.button
-            className="rounded-2xl font-bold text-lg px-8 py-4 transition-all duration-200 shadow-md hover:shadow-lg bg-game-pink text-white hover:bg-game-pink-dark"
+            className="rounded-2xl font-bold text-base md:text-lg px-6 py-3 md:px-8 md:py-4 transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 bg-game-pink text-white hover:bg-game-pink-dark"
             onClick={() => setScreen("worldMap")}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

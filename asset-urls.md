@@ -31,3 +31,11 @@
 ## Star Reward
 - Original: https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/star-reward-YPk2Pw4dNpD6xdpPZ7XJeU.png
 - Compressed: https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/star-reward-95jttEzzhfjXQ8jXr2cWRw.webp
+
+## Rae Avatar (Peace Sign)
+- Original: https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/rae-avatar-5Y7EGgfuDpkn6a43S5s6Rr.png
+- Compressed: https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/rae-avatar-E5Gxhe2okLriXo5AqmUvNq.webp
+
+## Rae Avatar (Celebrating)
+- Original: https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/rae-avatar-celebrating-5E346GBAWs3Gducxd6tsAs.png
+- Compressed: https://d2xsxph8kpxj0f.cloudfront.net/310519663046120931/ZWjdUE9NtbgjHKzQk7FVZm/rae-avatar-celebrating-EVk6gV45Nu6shxPZqGQuci.webp

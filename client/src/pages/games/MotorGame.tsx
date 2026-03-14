@@ -1,13 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ASSETS, getRandomMessage, CHARACTER_MESSAGES, type CharacterType } from "@shared/gameConfig";
 import CharacterDisplay from "@/components/CharacterDisplay";
 import { useTTS } from "@/hooks/useTTS";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useGame } from "@/contexts/GameContext";
 
 interface FallingItem {
   id: number;
-  x: number; // 0-100 percentage
+  x: number;
   y: number;
   content: string;
   emoji: string;
@@ -42,6 +43,7 @@ const GOOD_ITEMS = [
 const PLAYER_WIDTH = 15;
 
 export default function MotorGame({ difficulty, character, onComplete }: MotorGameProps) {
+  const { isMobile } = useGame();
   const [playerX, setPlayerX] = useState(50);
   const [items, setItems] = useState<FallingItem[]>([]);
   const [score, setScore] = useState(0);
@@ -57,28 +59,31 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
   const animFrameRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const keysRef = useRef<Set<string>>(new Set());
+  const touchDirRef = useRef<"left" | "right" | null>(null);
   const itemIdRef = useRef(0);
   const playerXRef = useRef(50);
   const { speakForCharacter } = useTTS();
-  const { playCorrect, playWrong, playClick } = useSoundEffects();
+  const { playCorrect, playClick } = useSoundEffects();
 
-  // Keep playerXRef in sync
   useEffect(() => {
     playerXRef.current = playerX;
   }, [playerX]);
 
-  // Countdown before game starts
+  // Countdown
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(prev => prev - 1), 800);
       return () => clearTimeout(timer);
     } else if (countdown === 0 && !gameActive) {
       setGameActive(true);
-      speakForCharacter("Catch the healthy food! Use A and L keys!", character);
+      const msg = isMobile
+        ? "Catch the healthy food! Tap left or right!"
+        : "Catch the healthy food! Use A and L keys!";
+      speakForCharacter(msg, character);
     }
   }, [countdown, gameActive]);
 
-  // Spawn items periodically
+  // Spawn items
   useEffect(() => {
     if (!gameActive || spawnedCount >= totalItems) return;
 
@@ -110,9 +115,7 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       keysRef.current.add(key);
-      if (key === "a" || key === "l") {
-        playClick();
-      }
+      if (key === "a" || key === "l") playClick();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       keysRef.current.delete(e.key.toLowerCase());
@@ -126,6 +129,16 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
     };
   }, []);
 
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((dir: "left" | "right") => {
+    touchDirRef.current = dir;
+    playClick();
+  }, [playClick]);
+
+  const handleTouchEnd = useCallback(() => {
+    touchDirRef.current = null;
+  }, []);
+
   // Game loop
   useEffect(() => {
     if (!gameActive) return;
@@ -135,28 +148,27 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
       const delta = (timestamp - lastTimeRef.current) / 16;
       lastTimeRef.current = timestamp;
 
-      // Move player
       const moveSpeed = 3 + difficulty * 0.3;
-      if (keysRef.current.has("a") || keysRef.current.has("arrowleft")) {
+      const moveLeft = keysRef.current.has("a") || keysRef.current.has("arrowleft") || touchDirRef.current === "left";
+      const moveRight = keysRef.current.has("l") || keysRef.current.has("arrowright") || touchDirRef.current === "right";
+
+      if (moveLeft) {
         setPlayerX(prev => Math.max(PLAYER_WIDTH / 2, prev - moveSpeed * delta));
       }
-      if (keysRef.current.has("l") || keysRef.current.has("arrowright")) {
+      if (moveRight) {
         setPlayerX(prev => Math.min(100 - PLAYER_WIDTH / 2, prev + moveSpeed * delta));
       }
 
-      // Move items
       setItems(prevItems => {
         const remaining: FallingItem[] = [];
         let newMissed = 0;
 
         for (const item of prevItems) {
           const newY = item.y + item.speed * delta;
-
           if (newY > 100) {
             newMissed++;
             continue;
           }
-
           remaining.push({ ...item, y: newY });
         }
 
@@ -209,7 +221,7 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
     return () => clearInterval(checkCollisions);
   }, [gameActive]);
 
-  // Check game completion
+  // Check completion
   useEffect(() => {
     if (spawnedCount >= totalItems && items.length === 0 && !isComplete && gameActive) {
       setGameActive(false);
@@ -225,21 +237,19 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
   const displayChar = character === "both" ? "penguin" : character;
 
   return (
-    <div className="flex flex-col items-center gap-2 w-full max-w-3xl mx-auto px-4">
+    <div className="flex flex-col items-center gap-2 w-full max-w-3xl mx-auto px-2 md:px-4">
       {/* Score bar */}
       <div className="w-full flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-game-pink-dark/60">Caught: {caught}/{totalItems}</span>
-        </div>
-        <div className="flex-1 mx-4 bg-game-pink-light/50 rounded-full h-3">
+        <span className="text-xs md:text-sm font-bold text-game-pink-dark/60">
+          Caught: {caught}/{totalItems}
+        </span>
+        <div className="flex-1 mx-3 bg-game-pink-light/50 rounded-full h-2.5 md:h-3">
           <motion.div
-            className="bg-game-peach rounded-full h-3"
+            className="bg-game-peach rounded-full h-2.5 md:h-3"
             animate={{ width: `${(caught / totalItems) * 100}%` }}
           />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-amber-600">Score: {score}</span>
-        </div>
+        <span className="text-xs md:text-sm font-bold text-amber-600">Score: {score}</span>
       </div>
 
       {/* Game area */}
@@ -247,7 +257,7 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
         ref={gameAreaRef}
         className="relative w-full rounded-3xl overflow-hidden shadow-inner border-2 border-game-pink/20"
         style={{
-          height: "60vh",
+          height: isMobile ? "50vh" : "55vh",
           maxHeight: "500px",
           background: "linear-gradient(180deg, #e8f4fd 0%, #fce4ec 70%, #f8bbd0 100%)",
         }}
@@ -266,11 +276,11 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.5, opacity: 0 }}
             >
-              <CharacterDisplay character={character} size="md" />
-              <span className="game-title text-6xl text-game-pink-dark block mt-4">
+              <CharacterDisplay character={character} size="lg" showRae />
+              <span className="game-title text-5xl md:text-6xl text-game-pink-dark block mt-4">
                 {countdown}
               </span>
-              <p className="text-lg text-foreground/60 mt-2">Get ready!</p>
+              <p className="text-base md:text-lg text-foreground/60 mt-2">Get ready!</p>
             </motion.div>
           </motion.div>
         )}
@@ -280,7 +290,7 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
           {items.map(item => (
             <motion.div
               key={item.id}
-              className="absolute text-3xl pointer-events-none select-none"
+              className="absolute text-2xl md:text-3xl pointer-events-none select-none"
               style={{
                 left: `${item.x}%`,
                 top: `${item.y}%`,
@@ -295,7 +305,7 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
           ))}
         </AnimatePresence>
 
-        {/* Player character at bottom */}
+        {/* Player character */}
         <motion.div
           className="absolute bottom-2 flex flex-col items-center"
           style={{
@@ -310,7 +320,7 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
           <img
             src={displayChar === "penguin" ? ASSETS.penguin : ASSETS.jellycat}
             alt={displayChar === "penguin" ? "Penguin" : "Jelly Cat"}
-            className="w-16 h-16 object-contain"
+            className="w-14 h-14 md:w-16 md:h-16 object-contain"
           />
         </motion.div>
 
@@ -328,25 +338,54 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
           )}
         </AnimatePresence>
 
-        {/* Ground decoration */}
+        {/* Ground */}
         <div className="absolute bottom-0 left-0 right-0 h-2 bg-game-pink/30" />
       </div>
 
-      {/* Controls hint */}
-      <div className="flex items-center gap-6 text-sm text-foreground/50">
-        <div className="flex items-center gap-2">
-          <kbd className="bg-white/80 border border-game-pink/30 rounded-lg px-3 py-1.5 font-bold text-game-pink-dark shadow-sm">
-            A
-          </kbd>
-          <span>Move Left</span>
+      {/* Controls */}
+      {isMobile ? (
+        /* Mobile: tap left/right with arrow icons */
+        <div className="w-full flex gap-3 mt-1">
+          <button
+            className="flex-1 flex items-center justify-center gap-2 bg-white/80 border-2 border-game-pink/30 rounded-2xl py-4 md:py-5 shadow-md active:bg-game-pink-light active:scale-95 transition-all select-none"
+            onTouchStart={() => handleTouchStart("left")}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={() => handleTouchStart("left")}
+            onMouseUp={handleTouchEnd}
+            onMouseLeave={handleTouchEnd}
+          >
+            <span className="text-3xl md:text-4xl">⬅️</span>
+            <span className="text-base md:text-lg font-bold text-game-pink-dark">Left</span>
+          </button>
+          <button
+            className="flex-1 flex items-center justify-center gap-2 bg-white/80 border-2 border-game-pink/30 rounded-2xl py-4 md:py-5 shadow-md active:bg-game-pink-light active:scale-95 transition-all select-none"
+            onTouchStart={() => handleTouchStart("right")}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={() => handleTouchStart("right")}
+            onMouseUp={handleTouchEnd}
+            onMouseLeave={handleTouchEnd}
+          >
+            <span className="text-base md:text-lg font-bold text-game-pink-dark">Right</span>
+            <span className="text-3xl md:text-4xl">➡️</span>
+          </button>
         </div>
-        <div className="flex items-center gap-2">
-          <kbd className="bg-white/80 border border-game-pink/30 rounded-lg px-3 py-1.5 font-bold text-game-pink-dark shadow-sm">
-            L
-          </kbd>
-          <span>Move Right</span>
+      ) : (
+        /* Desktop: keyboard hints */
+        <div className="flex items-center gap-6 text-sm text-foreground/50">
+          <div className="flex items-center gap-2">
+            <kbd className="bg-white/80 border border-game-pink/30 rounded-lg px-3 py-1.5 font-bold text-game-pink-dark shadow-sm">
+              A
+            </kbd>
+            <span>Move Left</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <kbd className="bg-white/80 border border-game-pink/30 rounded-lg px-3 py-1.5 font-bold text-game-pink-dark shadow-sm">
+              L
+            </kbd>
+            <span>Move Right</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

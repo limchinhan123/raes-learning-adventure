@@ -7,12 +7,12 @@ import { useSoundEffects } from "@/hooks/useSoundEffects";
 import { useBackgroundMusic } from "@/hooks/useBackgroundMusic";
 
 export default function WelcomeScreen() {
-  const { setScreen, totalStars, totalHearts, soundEnabled } = useGame();
+  const { setScreen, totalStars, totalHearts, soundEnabled, isMobile } = useGame();
   const [welcomeMsg] = useState(() => getRandomMessage(CHARACTER_MESSAGES.welcome));
   const [showContent, setShowContent] = useState(false);
   const { speakForCharacter } = useTTS();
   const { playClick } = useSoundEffects();
-  const { startMusic } = useBackgroundMusic();
+  useBackgroundMusic(); // auto-starts on first interaction
 
   useEffect(() => {
     const timer = setTimeout(() => setShowContent(true), 500);
@@ -31,7 +31,6 @@ export default function WelcomeScreen() {
 
   const handleStart = () => {
     playClick();
-    startMusic("calm");
     setScreen("worldMap");
   };
 
@@ -47,10 +46,14 @@ export default function WelcomeScreen() {
     return () => window.removeEventListener("keydown", handleKey);
   }, [showContent]);
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
-      style={{ background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 30%, #f3e5f5 60%, #e8eaf6 100%)" }}>
+  const charSize = isMobile ? "w-24 h-24" : "w-36 h-36 md:w-44 md:h-44";
 
+  return (
+    <div
+      className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden px-4"
+      style={{ background: "linear-gradient(180deg, #fce4ec 0%, #f8bbd0 30%, #f3e5f5 60%, #e8eaf6 100%)" }}
+      onClick={showContent ? handleStart : undefined}
+    >
       {/* Floating decorative elements */}
       {[...Array(8)].map((_, i) => (
         <motion.div
@@ -83,9 +86,9 @@ export default function WelcomeScreen() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        {/* Characters */}
+        {/* The Trio: Penguin, Rae, Jelly Cat */}
         <motion.div
-          className="flex items-end gap-4"
+          className="flex items-end gap-3 md:gap-6"
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.3 }}
@@ -93,15 +96,22 @@ export default function WelcomeScreen() {
           <motion.img
             src={ASSETS.penguin}
             alt="Penguin"
-            className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-lg"
-            animate={{ y: [0, -8, 0] }}
+            className={`${charSize} object-contain drop-shadow-lg`}
+            animate={{ y: [0, -10, 0], rotate: [0, -3, 3, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.img
+            src={ASSETS.rae}
+            alt="Rae"
+            className={`${charSize} object-contain drop-shadow-lg`}
+            animate={{ y: [0, -8, 0], scale: [1, 1.03, 1] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", delay: 0.2 }}
           />
           <motion.img
             src={ASSETS.jellycat}
             alt="Jelly Cat"
-            className="w-32 h-32 md:w-40 md:h-40 object-contain drop-shadow-lg"
-            animate={{ y: [0, -8, 0] }}
+            className={`${charSize} object-contain drop-shadow-lg`}
+            animate={{ y: [0, -10, 0], rotate: [0, 3, -3, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
           />
         </motion.div>
@@ -129,7 +139,7 @@ export default function WelcomeScreen() {
         {/* Stats (if returning player) */}
         {(totalStars > 0 || totalHearts > 0) && (
           <motion.div
-            className="flex gap-6 items-center"
+            className="flex gap-4 md:gap-6 items-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
@@ -152,8 +162,11 @@ export default function WelcomeScreen() {
         {/* Play Button */}
         {showContent && (
           <motion.button
-            className="rounded-2xl font-bold text-2xl md:text-3xl px-12 py-5 mt-4 transition-all duration-200 shadow-md hover:shadow-lg bg-game-pink text-white hover:bg-game-pink-dark"
-            onClick={handleStart}
+            className="rounded-2xl font-bold text-2xl md:text-3xl px-12 py-5 mt-4 transition-all duration-200 shadow-lg hover:shadow-xl bg-game-pink text-white hover:bg-game-pink-dark active:scale-95"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStart();
+            }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 1.4, type: "spring", stiffness: 200 }}
@@ -171,7 +184,7 @@ export default function WelcomeScreen() {
           animate={{ opacity: 1 }}
           transition={{ delay: 2 }}
         >
-          Press any key or click to start!
+          {isMobile ? "Tap anywhere to start!" : "Press any key or click to start!"}
         </motion.p>
       </motion.div>
     </div>

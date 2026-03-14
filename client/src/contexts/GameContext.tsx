@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
-import { SCREEN_TIME_REMINDER_MINUTES, WORLDS, LEVELS_PER_WORLD, type CharacterType, getRandomCharacter, type GameType, getLevelGameType, getDifficulty } from "@shared/gameConfig";
+import { SCREEN_TIME_REMINDER_MINUTES, WORLDS, LEVELS_PER_WORLD, ALL_LEVELS_UNLOCKED, type CharacterType, getRandomCharacter, type GameType, getLevelGameType, getDifficulty } from "@shared/gameConfig";
 
 export type GameScreen = "welcome" | "worldMap" | "levelSelect" | "game" | "reward" | "screenTimeReminder";
 
@@ -7,8 +7,6 @@ interface GameState {
   screen: GameScreen;
   currentWorld: number;
   currentLevel: number;
-  highestWorldUnlocked: number;
-  highestLevelUnlocked: number;
   totalStars: number;
   totalHearts: number;
   activeCharacter: CharacterType;
@@ -17,7 +15,8 @@ interface GameState {
   score: number;
   sessionStartTime: number;
   soundEnabled: boolean;
-  levelStars: Record<string, number>; // "worldId-levelId" -> stars
+  musicStarted: boolean;
+  levelStars: Record<string, number>;
 }
 
 interface GameContextType extends GameState {
@@ -31,14 +30,14 @@ interface GameContextType extends GameState {
   getStarsForLevel: (worldId: number, levelId: number) => number;
   isLevelUnlocked: (worldId: number, levelId: number) => boolean;
   isWorldUnlocked: (worldId: number) => boolean;
+  setMusicStarted: () => void;
+  isMobile: boolean;
 }
 
 const defaultState: GameState = {
   screen: "welcome",
   currentWorld: 1,
   currentLevel: 1,
-  highestWorldUnlocked: 1,
-  highestLevelUnlocked: 1,
   totalStars: 0,
   totalHearts: 0,
   activeCharacter: "both",
@@ -47,6 +46,7 @@ const defaultState: GameState = {
   score: 0,
   sessionStartTime: Date.now(),
   soundEnabled: true,
+  musicStarted: false,
   levelStars: {},
 };
 
@@ -62,6 +62,7 @@ function loadState(): GameState {
         ...parsed,
         screen: "welcome",
         sessionStartTime: Date.now(),
+        musicStarted: false,
       };
     }
   } catch (e) {
@@ -72,18 +73,32 @@ function loadState(): GameState {
 
 function saveState(state: GameState) {
   try {
-    const { screen, sessionStartTime, ...toSave } = state;
+    const { screen, sessionStartTime, musicStarted, ...toSave } = state;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch (e) {
     // ignore
   }
 }
 
+function detectMobile(): boolean {
+  if (typeof window === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    || (window.innerWidth <= 768);
+}
+
 const GameContext = createContext<GameContextType | null>(null);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<GameState>(loadState);
+  const [isMobile, setIsMobile] = useState(detectMobile);
   const screenTimeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Detect mobile on resize
+  useEffect(() => {
+    const handleResize = () => setIsMobile(detectMobile());
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Save state whenever it changes
   useEffect(() => {
@@ -100,7 +115,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (elapsed >= SCREEN_TIME_REMINDER_MINUTES) {
         setState(prev => ({ ...prev, screen: "screenTimeReminder" }));
       }
-    }, 60000); // Check every minute
+    }, 60000);
 
     return () => {
       if (screenTimeRef.current) clearInterval(screenTimeRef.current);
@@ -138,28 +153,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const newStars = Math.max(prevStars, stars);
       const starsDiff = newStars - prevStars;
 
-      let newHighestWorld = prev.highestWorldUnlocked;
-      let newHighestLevel = prev.highestLevelUnlocked;
-
-      // Unlock next level
-      if (prev.currentWorld === prev.highestWorldUnlocked && prev.currentLevel >= prev.highestLevelUnlocked) {
-        if (prev.currentLevel >= LEVELS_PER_WORLD) {
-          // Unlock next world
-          newHighestWorld = Math.min(prev.highestWorldUnlocked + 1, 5);
-          newHighestLevel = 1;
-        } else {
-          newHighestLevel = prev.currentLevel + 1;
-        }
-      }
-
       return {
         ...prev,
         totalStars: prev.totalStars + starsDiff,
         totalHearts: prev.totalHearts + 1,
         score,
         levelStars: { ...prev.levelStars, [levelKey]: newStars },
-        highestWorldUnlocked: newHighestWorld,
-        highestLevelUnlocked: newHighestLevel,
         screen: "reward",
       };
     });
@@ -173,6 +172,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, soundEnabled: !prev.soundEnabled }));
   }, []);
 
+  const setMusicStarted = useCallback(() => {
+    setState(prev => ({ ...prev, musicStarted: true }));
+  }, []);
+
   const resetGame = useCallback(() => {
     setState({ ...defaultState, sessionStartTime: Date.now() });
     localStorage.removeItem(STORAGE_KEY);
@@ -182,15 +185,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return state.levelStars[`${worldId}-${levelId}`] || 0;
   }, [state.levelStars]);
 
-  const isLevelUnlocked = useCallback((worldId: number, levelId: number) => {
-    if (worldId < state.highestWorldUnlocked) return true;
-    if (worldId === state.highestWorldUnlocked && levelId <= state.highestLevelUnlocked) return true;
-    return false;
-  }, [state.highestWorldUnlocked, state.highestLevelUnlocked]);
+  // All levels unlocked
+  const isLevelUnlocked = useCallback((_worldId: number, _levelId: number) => {
+    if (ALL_LEVELS_UNLOCKED) return true;
+    return true;
+  }, []);
 
-  const isWorldUnlocked = useCallback((worldId: number) => {
-    return worldId <= state.highestWorldUnlocked;
-  }, [state.highestWorldUnlocked]);
+  const isWorldUnlocked = useCallback((_worldId: number) => {
+    if (ALL_LEVELS_UNLOCKED) return true;
+    return true;
+  }, []);
 
   return (
     <GameContext.Provider value={{
@@ -205,6 +209,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       getStarsForLevel,
       isLevelUnlocked,
       isWorldUnlocked,
+      setMusicStarted,
+      isMobile,
     }}>
       {children}
     </GameContext.Provider>

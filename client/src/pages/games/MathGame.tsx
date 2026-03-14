@@ -4,6 +4,7 @@ import { getRandomMessage, CHARACTER_MESSAGES, type CharacterType } from "@share
 import CharacterDisplay from "@/components/CharacterDisplay";
 import { useTTS } from "@/hooks/useTTS";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
+import { useGame } from "@/contexts/GameContext";
 
 interface MathProblem {
   num1: number;
@@ -45,11 +46,11 @@ function generateLocalProblem(difficulty: number): MathProblem {
 
 function NumberBlocks({ count, color }: { count: number; color: string }) {
   return (
-    <div className="flex flex-wrap gap-1 justify-center max-w-[140px]">
+    <div className="flex flex-wrap gap-1 justify-center max-w-[120px] md:max-w-[140px]">
       {Array.from({ length: count }, (_, i) => (
         <motion.div
           key={i}
-          className="w-8 h-8 rounded-lg shadow-sm flex items-center justify-center text-white text-xs font-bold"
+          className="w-6 h-6 md:w-8 md:h-8 rounded-lg shadow-sm flex items-center justify-center text-white text-xs font-bold"
           style={{ backgroundColor: color }}
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
@@ -63,6 +64,7 @@ function NumberBlocks({ count, color }: { count: number; color: string }) {
 }
 
 export default function MathGame({ difficulty, character, onComplete }: MathGameProps) {
+  const { isMobile } = useGame();
   const [problem, setProblem] = useState<MathProblem | null>(null);
   const [options, setOptions] = useState<number[]>([]);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -95,7 +97,6 @@ export default function MathGame({ difficulty, character, onComplete }: MathGame
     generateProblemAndOptions();
   }, [round, generateProblemAndOptions]);
 
-  // Speak the problem
   useEffect(() => {
     if (problem) {
       const timer = setTimeout(() => {
@@ -106,18 +107,15 @@ export default function MathGame({ difficulty, character, onComplete }: MathGame
     }
   }, [problem, round]);
 
-  // Keyboard handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isComplete || showFeedback || !problem) return;
 
-      // Direct number press
       const num = parseInt(e.key);
       if (!isNaN(num) && options.includes(num)) {
         handleAnswer(num);
         return;
       }
-      // Position-based: 1, 2, 3
       if (e.key >= "1" && e.key <= "3") {
         const idx = parseInt(e.key) - 1;
         if (idx < options.length) {
@@ -170,35 +168,35 @@ export default function MathGame({ difficulty, character, onComplete }: MathGame
   if (!problem) return null;
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-2xl mx-auto px-4">
+    <div className="flex flex-col items-center gap-4 md:gap-6 w-full max-w-2xl mx-auto px-3 md:px-4">
       {/* Progress */}
       <div className="w-full flex items-center gap-3">
-        <span className="text-sm font-bold text-game-pink-dark/60">{round}/{totalRounds}</span>
-        <div className="flex-1 bg-game-pink-light/50 rounded-full h-3">
+        <span className="text-xs md:text-sm font-bold text-game-pink-dark/60">{round}/{totalRounds}</span>
+        <div className="flex-1 bg-game-pink-light/50 rounded-full h-2.5 md:h-3">
           <motion.div
-            className="bg-game-mint rounded-full h-3"
+            className="bg-game-mint rounded-full h-2.5 md:h-3"
             animate={{ width: `${(round / totalRounds) * 100}%` }}
           />
         </div>
       </div>
 
-      {/* Character */}
-      <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size="md" />
+      {/* Character with Rae */}
+      <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size={isMobile ? "md" : "lg"} showRae />
 
-      {/* Visual number blocks (Numberblocks-inspired) */}
-      <div className="flex items-center gap-4 flex-wrap justify-center">
+      {/* Visual number blocks */}
+      <div className="flex items-center gap-3 md:gap-4 flex-wrap justify-center">
         <NumberBlocks count={problem.num1} color="#f8a4b8" />
-        <span className="text-4xl font-bold text-game-pink-dark">
+        <span className="text-3xl md:text-4xl font-bold text-game-pink-dark">
           {problem.operator}
         </span>
         <NumberBlocks count={problem.num2} color="#a8d8ea" />
-        <span className="text-4xl font-bold text-game-pink-dark">=</span>
-        <span className="text-5xl font-bold text-game-pink-dark">?</span>
+        <span className="text-3xl md:text-4xl font-bold text-game-pink-dark">=</span>
+        <span className="text-4xl md:text-5xl font-bold text-game-pink-dark">?</span>
       </div>
 
       {/* Problem text */}
       <motion.h2
-        className="game-title text-3xl md:text-4xl text-game-pink-dark"
+        className="game-title text-2xl md:text-4xl text-game-pink-dark"
         key={round}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -206,18 +204,19 @@ export default function MathGame({ difficulty, character, onComplete }: MathGame
         {problem.display}
       </motion.h2>
 
-      {/* Answer options */}
-      <div className="flex gap-4">
+      {/* Answer options - bigger on mobile for easy tapping */}
+      <div className="flex gap-3 md:gap-4">
         {options.map((opt, i) => (
           <motion.button
             key={`${round}-${i}-${opt}`}
-            className={`w-20 h-20 rounded-2xl text-3xl font-bold shadow-lg border-2 transition-all ${
+            className={`w-18 h-18 md:w-20 md:h-20 rounded-2xl text-2xl md:text-3xl font-bold shadow-lg border-2 transition-all ${
               selectedAnswer === opt
                 ? opt === problem.answer
                   ? "bg-game-mint border-green-400 text-white"
                   : "bg-game-coral border-red-300 text-white"
-                : "bg-white border-game-pink/30 text-game-pink-dark hover:border-game-pink hover:shadow-xl"
+                : "bg-white border-game-pink/30 text-game-pink-dark hover:border-game-pink hover:shadow-xl active:scale-95"
             }`}
+            style={{ width: isMobile ? "5rem" : undefined, height: isMobile ? "5rem" : undefined }}
             onClick={() => handleAnswer(opt)}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -230,9 +229,9 @@ export default function MathGame({ difficulty, character, onComplete }: MathGame
         ))}
       </div>
 
-      {/* Keyboard hint */}
-      <p className="text-sm text-foreground/40">
-        Press the number or click the answer!
+      {/* Hint */}
+      <p className="text-xs md:text-sm text-foreground/40">
+        {isMobile ? "Tap the correct answer!" : "Press the number or tap the answer!"}
       </p>
 
       {/* Feedback */}
@@ -245,18 +244,18 @@ export default function MathGame({ difficulty, character, onComplete }: MathGame
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className={`rounded-3xl px-8 py-6 text-center shadow-xl ${
+              className={`rounded-3xl px-6 py-5 md:px-8 md:py-6 text-center shadow-xl ${
                 showFeedback === "correct" ? "bg-game-mint/95" : "bg-game-peach/95"
               }`}
               initial={{ scale: 0.5 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.5 }}
             >
-              <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size="sm" />
-              <span className="text-4xl mb-2 block">
+              <CharacterDisplay character={character} celebrating={showFeedback === "correct"} size="sm" showRae />
+              <span className="text-3xl md:text-4xl mb-2 block">
                 {showFeedback === "correct" ? "🌟" : "💪"}
               </span>
-              <p className="text-lg font-bold text-foreground/80">{feedbackMessage}</p>
+              <p className="text-base md:text-lg font-bold text-foreground/80">{feedbackMessage}</p>
             </motion.div>
           </motion.div>
         )}

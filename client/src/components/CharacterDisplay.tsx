@@ -1,61 +1,97 @@
-import { ASSETS, type CharacterType } from "@shared/gameConfig";
 import { motion } from "framer-motion";
+import { ASSETS, type CharacterType } from "@shared/gameConfig";
 
 interface CharacterDisplayProps {
   character: CharacterType;
   celebrating?: boolean;
   size?: "sm" | "md" | "lg" | "xl";
+  showRae?: boolean;
   className?: string;
 }
 
-const sizeMap = {
-  sm: "w-16 h-16",
-  md: "w-24 h-24",
-  lg: "w-32 h-32",
-  xl: "w-48 h-48",
+const sizeClasses = {
+  sm: "w-16 h-16 md:w-20 md:h-20",
+  md: "w-24 h-24 md:w-32 md:h-32",
+  lg: "w-32 h-32 md:w-40 md:h-40",
+  xl: "w-40 h-40 md:w-52 md:h-52",
 };
 
-export default function CharacterDisplay({ character, celebrating = false, size = "md", className = "" }: CharacterDisplayProps) {
-  const sizeClass = sizeMap[size];
+function CharacterImage({
+  src,
+  alt,
+  sizeClass,
+  celebrating,
+  delay = 0,
+}: {
+  src: string;
+  alt: string;
+  sizeClass: string;
+  celebrating: boolean;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      className="relative"
+      animate={
+        celebrating
+          ? { y: [0, -15, 0], rotate: [0, -5, 5, 0] }
+          : { y: [0, -6, 0] }
+      }
+      transition={
+        celebrating
+          ? { duration: 0.5, repeat: Infinity, delay }
+          : { duration: 2.5 + delay, repeat: Infinity, ease: "easeInOut" as const }
+      }
+    >
+      <motion.img
+        src={src}
+        alt={alt}
+        className={`${sizeClass} object-contain drop-shadow-lg pointer-events-none select-none`}
+      />
+    </motion.div>
+  );
+}
 
-  const getImage = (char: "penguin" | "jellycat") => {
-    if (celebrating) {
-      return char === "penguin" ? ASSETS.penguinCelebrating : ASSETS.jellycatCelebrating;
-    }
-    return char === "penguin" ? ASSETS.penguin : ASSETS.jellycat;
-  };
-
-  if (character === "both") {
-    return (
-      <div className={`flex items-end gap-2 ${className}`}>
-        <motion.img
-          src={getImage("penguin")}
-          alt="Penguin"
-          className={`${sizeClass} object-contain drop-shadow-md`}
-          animate={celebrating ? { y: [0, -15, 0], rotate: [0, -5, 5, 0] } : { y: [0, -6, 0] }}
-          transition={celebrating ? { duration: 0.6, repeat: Infinity } : { duration: 3, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.img
-          src={getImage("jellycat")}
-          alt="Jelly Cat"
-          className={`${sizeClass} object-contain drop-shadow-md`}
-          animate={celebrating ? { y: [0, -15, 0], rotate: [0, 5, -5, 0] } : { y: [0, -6, 0] }}
-          transition={celebrating ? { duration: 0.6, repeat: Infinity, delay: 0.1 } : { duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        />
-      </div>
-    );
-  }
-
-  const img = getImage(character);
-  const alt = character === "penguin" ? "Penguin" : "Jelly Cat";
+export default function CharacterDisplay({
+  character,
+  celebrating = false,
+  size = "md",
+  showRae = false,
+  className = "",
+}: CharacterDisplayProps) {
+  const sizeClass = sizeClasses[size];
 
   return (
-    <motion.img
-      src={img}
-      alt={alt}
-      className={`${sizeClass} object-contain drop-shadow-md ${className}`}
-      animate={celebrating ? { y: [0, -15, 0], rotate: [0, -5, 5, 0] } : { y: [0, -6, 0] }}
-      transition={celebrating ? { duration: 0.6, repeat: Infinity } : { duration: 3, repeat: Infinity, ease: "easeInOut" }}
-    />
+    <div className={`flex items-end justify-center gap-2 md:gap-4 ${className}`}>
+      {(character === "penguin" || character === "both") && (
+        <CharacterImage
+          src={celebrating ? ASSETS.penguinCelebrating : ASSETS.penguin}
+          alt="Penguin"
+          sizeClass={sizeClass}
+          celebrating={celebrating}
+          delay={0}
+        />
+      )}
+
+      {showRae && (
+        <CharacterImage
+          src={celebrating ? ASSETS.raeCelebrating : ASSETS.rae}
+          alt="Rae"
+          sizeClass={sizeClass}
+          celebrating={celebrating}
+          delay={0.15}
+        />
+      )}
+
+      {(character === "jellycat" || character === "both") && (
+        <CharacterImage
+          src={celebrating ? ASSETS.jellycatCelebrating : ASSETS.jellycat}
+          alt="Jelly Cat"
+          sizeClass={sizeClass}
+          celebrating={celebrating}
+          delay={0.3}
+        />
+      )}
+    </div>
   );
 }

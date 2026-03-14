@@ -69,3 +69,16 @@
 - [x] Responsive layout for laptop screens
 - [x] Keyboard-only navigation (no mouse needed for toddler)
 - [x] Error-tolerant input handling
+
+## Update v2 - New Features
+- [x] Generate Rae cartoon avatar (matching Penguin/Jelly Cat art style)
+- [x] Add Rae avatar to welcome screen as trio with Penguin and Jelly Cat
+- [x] Add Rae avatar throughout all game screens
+- [x] Mobile/tablet touch support with tap left/right zones
+- [x] On-screen arrow icons to guide touch controls
+- [x] Large on-screen buttons for alphabet and math on mobile
+- [x] Responsive scaling for phone/tablet screens
+- [x] Continuous soft background music (auto-play after first interaction)
+- [x] Unlock all 50 levels from the start (keep 5 world structure)
+- [x] Make Penguin and Jelly Cat bigger on screen
+- [x] Add wandering/roaming animations for characters (not fixed in place)

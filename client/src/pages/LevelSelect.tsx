@@ -1,132 +1,128 @@
 import { motion } from "framer-motion";
-import { WORLDS, LEVELS_PER_WORLD, getLevelGameType } from "@shared/gameConfig";
+import { ASSETS, WORLDS, LEVELS_PER_WORLD, getLevelGameType, type GameType } from "@shared/gameConfig";
 import { useGame } from "@/contexts/GameContext";
-import CharacterDisplay from "@/components/CharacterDisplay";
-import { Lock, BookOpen, Calculator, Gamepad2 } from "lucide-react";
 import { useSoundEffects } from "@/hooks/useSoundEffects";
 
-const gameTypeIcons: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-  alphabet: { icon: <BookOpen className="w-4 h-4" />, label: "ABC", color: "bg-game-lavender" },
-  math: { icon: <Calculator className="w-4 h-4" />, label: "123", color: "bg-game-mint" },
-  motor: { icon: <Gamepad2 className="w-4 h-4" />, label: "Catch", color: "bg-game-peach" },
+const gameTypeInfo: Record<GameType, { icon: string; label: string; color: string }> = {
+  alphabet: { icon: "🔤", label: "ABC", color: "bg-game-lavender" },
+  math: { icon: "🔢", label: "123", color: "bg-game-mint" },
+  motor: { icon: "🎮", label: "Catch", color: "bg-game-peach" },
 };
 
 export default function LevelSelect() {
-  const { currentWorld, startLevel, isLevelUnlocked, getStarsForLevel, setScreen } = useGame();
-  const world = WORLDS[currentWorld - 1];
+  const { currentWorld, startLevel, getStarsForLevel, setScreen, isMobile } = useGame();
   const { playClick } = useSoundEffects();
-
-  const handleStartLevel = (worldId: number, levelId: number) => {
-    playClick();
-    startLevel(worldId, levelId);
-  };
+  const world = WORLDS.find(w => w.id === currentWorld) || WORLDS[0];
 
   return (
-    <div className="min-h-screen relative overflow-hidden"
-      style={{ background: `linear-gradient(180deg, ${world.color}33 0%, #fce4ec 50%, #f8bbd0 100%)` }}>
-
+    <div
+      className="min-h-screen relative overflow-hidden px-4 py-4 md:py-6"
+      style={{ background: `linear-gradient(180deg, ${world.color}22 0%, #fce4ec44 100%)` }}
+    >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between">
+      <div className="flex items-center justify-between max-w-3xl mx-auto mb-3 md:mb-5">
         <motion.button
           onClick={() => { playClick(); setScreen("worldMap"); }}
-          className="bg-white/80 hover:bg-white rounded-full px-4 py-2 shadow-md text-game-pink-dark font-bold text-sm"
+          className="bg-white/80 hover:bg-white rounded-full px-3 py-2 md:px-4 shadow-md text-game-pink-dark font-bold text-sm"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          ← Back
+          ← Worlds
         </motion.button>
-
-        <div className="flex items-center gap-2">
-          <span className="text-2xl">{world.icon}</span>
-          <h1 className="game-title text-xl md:text-2xl text-game-pink-dark">{world.name}</h1>
-        </div>
-
-        <div className="w-20" />
+        <h1 className="game-title text-lg md:text-2xl text-game-pink-dark flex items-center gap-2">
+          <span className="text-2xl md:text-3xl">{world.icon}</span>
+          <span className="hidden sm:inline">{world.name}</span>
+        </h1>
+        <div className="w-16" />
       </div>
 
-      {/* World description */}
-      <motion.div
-        className="text-center px-4 mb-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.2 }}
-      >
-        <p className="text-foreground/60">{world.description}</p>
-        <p className="text-sm text-game-pink-dark/60 mt-1 italic">{world.encouragement}</p>
-      </motion.div>
-
-      {/* Character */}
-      <div className="flex justify-center mb-4">
-        <CharacterDisplay character={currentWorld % 2 === 0 ? "jellycat" : "penguin"} size="md" />
+      {/* Wandering characters */}
+      <div className="flex justify-center items-end gap-2 md:gap-4 mb-3 md:mb-5">
+        <motion.img
+          src={ASSETS.penguin}
+          alt="Penguin"
+          className="w-12 h-12 md:w-20 md:h-20 object-contain drop-shadow-lg"
+          animate={{ x: [0, 12, -8, 0], y: [0, -5, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.img
+          src={ASSETS.rae}
+          alt="Rae"
+          className="w-12 h-12 md:w-20 md:h-20 object-contain drop-shadow-lg"
+          animate={{ y: [0, -6, 0] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.img
+          src={ASSETS.jellycat}
+          alt="Jelly Cat"
+          className="w-12 h-12 md:w-20 md:h-20 object-contain drop-shadow-lg"
+          animate={{ x: [0, -12, 8, 0], y: [0, -5, 0] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        />
       </div>
 
-      {/* Level Grid */}
-      <div className="px-4 pb-8">
-        <div className="max-w-2xl mx-auto grid grid-cols-5 gap-3">
-          {Array.from({ length: LEVELS_PER_WORLD }, (_, i) => {
-            const levelId = i + 1;
-            const unlocked = isLevelUnlocked(currentWorld, levelId);
-            const stars = getStarsForLevel(currentWorld, levelId);
-            const gameType = getLevelGameType(currentWorld, levelId);
-            const typeInfo = gameTypeIcons[gameType];
+      {/* Level grid */}
+      <div className="max-w-3xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 md:gap-4">
+        {Array.from({ length: LEVELS_PER_WORLD }, (_, i) => {
+          const levelId = i + 1;
+          const gameType = getLevelGameType(currentWorld, levelId);
+          const info = gameTypeInfo[gameType];
+          const stars = getStarsForLevel(currentWorld, levelId);
 
-            return (
-              <motion.button
-                key={levelId}
-                className={`relative rounded-2xl p-3 flex flex-col items-center gap-1 transition-all shadow-md border-2 ${
-                  unlocked
-                    ? "bg-white/90 border-game-pink/30 hover:border-game-pink hover:shadow-lg"
-                    : "bg-white/40 border-gray-200/30 cursor-not-allowed"
-                }`}
-                onClick={() => unlocked && handleStartLevel(currentWorld, levelId)}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.05, duration: 0.3 }}
-                whileHover={unlocked ? { scale: 1.08, y: -3 } : {}}
-                whileTap={unlocked ? { scale: 0.95 } : {}}
-              >
-                {/* Level number */}
-                <span className={`game-title text-xl ${unlocked ? "text-game-pink-dark" : "text-gray-400"}`}>
-                  {levelId}
-                </span>
+          return (
+            <motion.button
+              key={levelId}
+              className="relative rounded-2xl p-3 md:p-4 text-center shadow-md border-2 transition-all
+                bg-white/90 border-game-pink/20 hover:border-game-pink hover:shadow-xl active:scale-95"
+              onClick={() => { playClick(); startLevel(currentWorld, levelId); }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: i * 0.04, duration: 0.3 }}
+              whileHover={{ scale: 1.06, y: -3 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {/* Game type badge */}
+              <div className={`${info.color} rounded-full px-2 py-0.5 text-xs font-bold text-foreground/70 mb-1.5 inline-block`}>
+                {info.icon} {info.label}
+              </div>
 
-                {/* Game type badge */}
-                {unlocked ? (
-                  <span className={`${typeInfo.color} text-xs font-bold px-2 py-0.5 rounded-full text-foreground/70 flex items-center gap-1`}>
-                    {typeInfo.icon}
-                    {typeInfo.label}
+              {/* Level number */}
+              <div className="text-2xl md:text-3xl font-bold text-game-pink-dark mb-1">
+                {levelId}
+              </div>
+
+              {/* Stars */}
+              <div className="flex justify-center gap-0.5">
+                {[1, 2, 3].map(s => (
+                  <span key={s} className={`text-sm md:text-base ${s <= stars ? "opacity-100" : "opacity-20"}`}>
+                    ⭐
                   </span>
-                ) : (
-                  <Lock className="w-4 h-4 text-gray-400" />
-                )}
-
-                {/* Stars */}
-                {stars > 0 && (
-                  <div className="flex gap-0.5 mt-0.5">
-                    {[1, 2, 3].map(s => (
-                      <span key={s} className={`text-xs ${s <= stars ? "text-amber-400" : "text-gray-300"}`}>
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
+                ))}
+              </div>
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Legend */}
-      <div className="px-4 pb-6">
-        <div className="max-w-2xl mx-auto flex justify-center gap-4 flex-wrap">
-          {Object.entries(gameTypeIcons).map(([key, info]) => (
-            <div key={key} className="flex items-center gap-1.5 text-xs text-foreground/50">
-              <span className={`${info.color} p-1 rounded-full`}>{info.icon}</span>
-              <span>{key === "alphabet" ? "Letters & Words" : key === "math" ? "Numbers & Math" : "Catch Game"}</span>
-            </div>
-          ))}
-        </div>
+      <div className="flex justify-center gap-3 md:gap-5 flex-wrap mt-4 md:mt-6">
+        {Object.entries(gameTypeInfo).map(([key, info]) => (
+          <div key={key} className="flex items-center gap-1.5 text-xs text-foreground/50">
+            <span className={`${info.color} px-2 py-0.5 rounded-full font-bold`}>{info.icon}</span>
+            <span>{key === "alphabet" ? "Letters" : key === "math" ? "Math" : "Catch"}</span>
+          </div>
+        ))}
       </div>
+
+      {/* World encouragement */}
+      <motion.p
+        className="text-center text-xs md:text-sm text-foreground/40 mt-3 md:mt-4 italic max-w-md mx-auto"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8 }}
+      >
+        {world.encouragement}
+      </motion.p>
     </div>
   );
 }
