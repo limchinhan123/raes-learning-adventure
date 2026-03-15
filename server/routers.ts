@@ -38,7 +38,7 @@ export const appRouter = router({
               },
               {
                 role: "user",
-                content: `Generate a word for difficulty level ${input.difficulty}/10. Include a short, fun hint that a toddler would understand. Subtly encourage eating vegetables when possible. Respond with: {"word": "WORD", "hint": "A fun hint"}`
+                content: `Generate a word for difficulty level ${input.difficulty}/10. IMPORTANT: Pick a DIFFERENT word each time — vary between categories like foods, animals, body parts, colors, family names (Rae, Brandon, Steffi), and polite words. Do NOT repeat common words like CARROT. Include a short, fun hint that a toddler would understand. Subtly encourage eating vegetables when possible. Respond with: {"word": "WORD", "hint": "A fun hint"}`
               }
             ],
             response_format: {

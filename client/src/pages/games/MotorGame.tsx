@@ -98,14 +98,14 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
           y: -10,
           content: goodItem.content,
           emoji: goodItem.emoji,
-          speed: 0.8 + difficulty * 0.15 + Math.random() * 0.3,
+          speed: 0.35 + difficulty * 0.08 + Math.random() * 0.15,
           isGood: true,
         };
 
         setItems(prevItems => [...prevItems, item]);
         return prev + 1;
       });
-    }, Math.max(800, 2000 - difficulty * 120));
+    }, Math.max(1200, 2800 - difficulty * 120));
 
     return () => clearInterval(interval);
   }, [gameActive, spawnedCount, totalItems, difficulty]);
@@ -148,7 +148,7 @@ export default function MotorGame({ difficulty, character, onComplete }: MotorGa
       const delta = (timestamp - lastTimeRef.current) / 16;
       lastTimeRef.current = timestamp;
 
-      const moveSpeed = 3 + difficulty * 0.3;
+      const moveSpeed = 3.5 + difficulty * 0.3;
       const moveLeft = keysRef.current.has("a") || keysRef.current.has("arrowleft") || touchDirRef.current === "left";
       const moveRight = keysRef.current.has("l") || keysRef.current.has("arrowright") || touchDirRef.current === "right";
 

@@ -82,3 +82,7 @@
 - [x] Unlock all 50 levels from the start (keep 5 world structure)
 - [x] Make Penguin and Jelly Cat bigger on screen
 - [x] Add wandering/roaming animations for characters (not fixed in place)
+
+## Bug Fixes v3
+- [x] Fix word repetition bug (e.g., "Carrot" repeating many times in alphabet game)
+- [x] Slow down catching game speed across all levels (too fast for toddler)

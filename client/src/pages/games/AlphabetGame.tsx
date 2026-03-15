@@ -33,14 +33,16 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
   const generateChallenge = trpc.game.generateAlphabetChallenge.useMutation();
 
   const aiWordsRef = useRef<Array<{ word: string; hint: string }>>([]);
+  const usedWordsRef = useRef<Set<string>>(new Set());
   const fetchAIWord = useCallback(async () => {
     try {
       const result = await generateChallenge.mutateAsync({ difficulty });
       if (result.word && result.word.length > 0) {
-        aiWordsRef.current.push({
-          word: result.word.toUpperCase(),
-          hint: result.hint || "",
-        });
+        const w = result.word.toUpperCase();
+        if (!usedWordsRef.current.has(w)) {
+          aiWordsRef.current.push({ word: w, hint: result.hint || "" });
+          usedWordsRef.current.add(w);
+        }
       }
     } catch {
       // ignore
@@ -49,16 +51,30 @@ export default function AlphabetGame({ difficulty, character, onComplete }: Alph
 
   useEffect(() => {
     const words = getWordsForDifficulty(difficulty);
-    const word = words[Math.floor(Math.random() * words.length)];
 
-    if (aiWordsRef.current.length > 0) {
+    // Try AI word first (skip if already used)
+    let chosen = "";
+    let chosenHint = "";
+    while (aiWordsRef.current.length > 0) {
       const aiData = aiWordsRef.current.shift()!;
-      setCurrentWord(aiData.word);
-      setHint(aiData.hint);
-    } else {
-      setCurrentWord(word);
-      setHint("");
+      if (!usedWordsRef.current.has(aiData.word) || usedWordsRef.current.size > words.length) {
+        chosen = aiData.word;
+        chosenHint = aiData.hint;
+        break;
+      }
     }
+
+    // Fallback: pick a random word not yet used
+    if (!chosen) {
+      const unused = words.filter(w => !usedWordsRef.current.has(w));
+      const pool = unused.length > 0 ? unused : words;
+      chosen = pool[Math.floor(Math.random() * pool.length)];
+      chosenHint = "";
+    }
+
+    usedWordsRef.current.add(chosen);
+    setCurrentWord(chosen);
+    setHint(chosenHint);
     setTypedLetters([]);
     setCurrentIndex(0);
     setIsLoading(false);
