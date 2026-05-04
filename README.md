@@ -18,6 +18,15 @@
 
 Unlike static learning apps, this project uses a full-stack architecture with a **tRPC + Express backend** to generate dynamic, non-repetitive challenges via AI, ensuring the learning material scales gently as the child progresses.
 
+## 📸 Screenshots
+
+<div align="center">
+  <img src="docs/screenshot-welcome.png" alt="Rae's Learning Adventure — Welcome screen featuring Penguin, Rae, and Jelly Cat on a soft pink pastel background" width="100%" />
+  <p><em>The welcome screen — Penguin, Rae, and Jelly Cat greet the player on a warm pastel canvas. Press any key or tap to begin!</em></p>
+</div>
+
+---
+
 ## ✨ Key Features
 
 - **Three Core Mini-Games:**
